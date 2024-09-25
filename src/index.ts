@@ -108,7 +108,7 @@ app.post(
     }
 
     const files = req.files as Express.Multer.File[];
-    const folderName = uuidv4();
+    const folderName = req.body.filename || uuidv4();
     const folderPath = path.join("uploads", folderName);
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
