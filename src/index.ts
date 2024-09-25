@@ -55,7 +55,8 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, uuidv4() + path.extname(file.originalname));
+    const requestedFilename = req.body.filename || uuidv4();
+    cb(null, requestedFilename + path.extname(file.originalname));
   },
 });
 
@@ -69,6 +70,7 @@ app.post(
       return res.status(400).json({ message: "No file uploaded" });
     }
 
+    const requestedFilename = req.body.filename || req.file.filename; // Use the provided filename if available
     const filePath = path.join("uploads", req.file.filename);
 
     try {
@@ -77,7 +79,7 @@ app.post(
 
       await minioClient.putObject(
         bucket1,
-        req.file.filename,
+        requestedFilename,
         fileStream,
         stat.size
       );
@@ -86,7 +88,7 @@ app.post(
 
       res.status(200).json({
         message: "Image uploaded successfully to bucket1",
-        filename: req.file.filename,
+        filename: requestedFilename,
       });
     } catch (err) {
       console.error("Error uploading file to MinIO:", err);
@@ -106,7 +108,6 @@ app.post(
     }
 
     const files = req.files as Express.Multer.File[];
-
     const folderName = uuidv4();
     const folderPath = path.join("uploads", folderName);
     if (!fs.existsSync(folderPath)) {
@@ -118,7 +119,9 @@ app.post(
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const newFileName = `${i + 1}${path.extname(file.originalname)}`;
+        const newFileName =
+          req.body[`filename${i + 1}`] ||
+          `${i + 1}${path.extname(file.originalname)}`; // Use requested filenames if provided
         const filePath = path.join(folderPath, newFileName);
 
         const fileStream = fs.createReadStream(file.path);
